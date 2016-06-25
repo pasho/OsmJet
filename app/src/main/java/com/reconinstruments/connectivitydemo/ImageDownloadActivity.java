@@ -2,8 +2,12 @@ package com.reconinstruments.connectivitydemo;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -14,7 +18,9 @@ import com.reconinstruments.os.connectivity.HUDConnectivityManager;
 import com.reconinstruments.os.connectivity.http.HUDHttpRequest;
 import com.reconinstruments.os.connectivity.http.HUDHttpResponse;
 
-public class ImageDownloadActivity extends Activity
+import java.util.Locale;
+
+public class ImageDownloadActivity extends Activity implements LocationListener
 {
     private final String TAG = this.getClass().getSimpleName();
     public static String EXTRA_IMAGE_URL = "IMAGE_URL";
@@ -23,6 +29,7 @@ public class ImageDownloadActivity extends Activity
     private ImageView mImage = null;
     private int mDialogRefCnt = 0;
     private ProgressDialog mDialog;
+    private LocationManager mLocationService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -34,6 +41,9 @@ public class ImageDownloadActivity extends Activity
         setContentView(R.layout.image_layout);
         mImage = (ImageView) findViewById(R.id.imageView);
         mHUDConnectivityManager = (HUDConnectivityManager) HUDOS.getHUDService(HUDOS.HUD_CONNECTIVITY_SERVICE);
+        mLocationService = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+
+        System.load("/system/lib/libreconinstruments_jni.so");
     }
 
     @Override
@@ -41,13 +51,50 @@ public class ImageDownloadActivity extends Activity
     {
         super.onResume();
 
-        Bundle extras = getIntent().getExtras();
-        if (extras != null)
-        {
-            String url = extras.getString(EXTRA_IMAGE_URL);
-            new DownloadHUDImageTask(mImage).execute(url);
-        }
-        else{ Log.e(TAG, "No url was received from Intent"); }
+        new DownloadHUDImageTask(mImage).execute("http://www.reconinstruments.com/wp-content/themes/recon/img/jet/slide-3.jpg");
+
+        mLocationService.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 5, this);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        mLocationService.removeUpdates(this);
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+
+        int zoom = 18;
+        double n = Math.pow(2, zoom);
+        double lon = location.getLongitude();
+        double latRad = (location.getLatitude() / 180) * Math.PI;
+        double latSec = 1 / Math.cos(latRad);
+
+        int x = (int)Math.round(n * ((lon + 180) / 360));
+        int y = (int)Math.round(n * (1 - (Math.log(Math.tan(latRad) + latSec) / Math.PI)) / 2);
+
+        //http://[abc].tile2.opencyclemap.org/transport/zoom/x/y.png
+        String url = String.format(Locale.US, "http://a.tile2.opencyclemap.org/transport/%1$d/%2$d/%3$d.png", zoom, x, y);
+        Log.d(TAG, url);
+
+        new DownloadHUDImageTask(mImage).execute(url);
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+
     }
 
     private class DownloadHUDImageTask extends AsyncTask<String, Void, Bitmap>
