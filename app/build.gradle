@@ -1,0 +1,26 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 16
+    buildToolsVersion "23.0.3"
+
+    defaultConfig {
+        applicationId "com.reconinstruments.connectivitydemo"
+        minSdkVersion 16
+        targetSdkVersion 16
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    compile 'com.reconinstruments.app:recon-application:4.4.0'
+    compile 'com.reconinstruments.ui:recon-ui:4.4.0'
+    provided 'com.reconinstruments.os:recon-platform:4.4.0'
+}
