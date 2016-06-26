@@ -45,7 +45,10 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
         mDialog = new ProgressDialog(this);
         mDialog.setMessage("Downloading...");
         setContentView(R.layout.image_layout);
+
         mImage = (ImageView) findViewById(R.id.imageView);
+        mImage.setScaleType(ImageView.ScaleType.MATRIX);
+
         mHUDConnectivityManager = (HUDConnectivityManager) HUDOS.getHUDService(HUDOS.HUD_CONNECTIVITY_SERVICE);
         mLocationService = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         mHUDHeadingManager = (HUDHeadingManager) HUDOS.getHUDService(HUDOS.HUD_HEADING_SERVICE);
@@ -82,7 +85,8 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
         Log.d(TAG, String.format(">  %1$f", yaw));
 
         Matrix matrix = new Matrix();
-        matrix.postRotate(currentYaw, 128, 128);
+        int mid = 256 * 3 / 2;
+        matrix.postRotate(currentYaw, mid, mid);
         mImage.setImageMatrix(matrix);
     }
 
