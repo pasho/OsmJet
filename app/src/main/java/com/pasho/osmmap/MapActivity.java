@@ -5,6 +5,7 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.location.Location;
 import android.location.LocationListener;
@@ -59,9 +60,6 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
 
         mLocationService.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 5, tileManager);
         mHUDHeadingManager.register(this);
-
-        if (!tileUrl.isEmpty())
-            new DownloadHUDImageTask(mImage).execute(tileUrl);
     }
 
     @Override
@@ -90,58 +88,15 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
 
     @Override
     public void onTiles(Bitmap[] bitmaps) {
+        Bitmap combo = Bitmap.createBitmap(256 * 3, 256 * 3, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(combo);
+        for (int i = 0; i < 9; i++){
+            int y = i / 3;
+            int x = i - y * 3;
 
-    }
-
-    private class DownloadHUDImageTask extends AsyncTask<String, Void, Bitmap> {
-        ImageView bmImage;
-
-        public DownloadHUDImageTask(ImageView bmImage) {
-            this.bmImage = bmImage;
+            canvas.drawBitmap(bitmaps[i], x * 256, y * 256, null);
         }
 
-        @Override
-        protected void onPreExecute() {
-            synchronized (this) {
-                if (mDialogRefCnt == 0) {
-                    mDialog.show();
-                }
-                mDialogRefCnt++;
-            }
-        }
-
-        @Override
-        protected Bitmap doInBackground(String... urls) {
-            String urlDisplay = urls[0];
-            Bitmap bitmapImg = null;
-            try {
-                //Http Get Request
-                HUDHttpRequest request = new HUDHttpRequest(HUDHttpRequest.RequestMethod.GET, urlDisplay);
-                HUDHttpResponse response = mHUDConnectivityManager.sendWebRequest(request);
-                if (response.hasBody()) {
-                    byte[] data = response.getBody();
-                    bitmapImg = BitmapFactory.decodeByteArray(data, 0, data.length);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return bitmapImg;
-        }
-
-        @Override
-        protected void onPostExecute(Bitmap result) {
-            bmImage.setImageBitmap(result);
-
-            synchronized (this) {
-                if (mDialogRefCnt <= 1) {
-                    if (mDialog.isShowing()) {
-                        mDialog.dismiss();
-                    }
-                    mDialogRefCnt = 0;
-                } else {
-                    mDialogRefCnt--;
-                }
-            }
-        }
+        mImage.setImageBitmap(combo);
     }
 }
