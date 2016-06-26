@@ -23,7 +23,7 @@ import com.reconinstruments.os.hardware.sensors.HeadLocationListener;
 
 import java.util.Locale;
 
-public class MapActivity extends Activity implements LocationListener, HeadLocationListener {
+public class MapActivity extends Activity implements HeadLocationListener, ITilesConsumer {
     private final String TAG = this.getClass().getSimpleName();
     public static String EXTRA_IMAGE_URL = "IMAGE_URL";
 
@@ -35,6 +35,7 @@ public class MapActivity extends Activity implements LocationListener, HeadLocat
     private LocationManager mLocationService;
     private String tileUrl = "";
     private int[] _currentTile = new int[0];
+    private TilesManager tileManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +48,7 @@ public class MapActivity extends Activity implements LocationListener, HeadLocat
         mHUDConnectivityManager = (HUDConnectivityManager) HUDOS.getHUDService(HUDOS.HUD_CONNECTIVITY_SERVICE);
         mLocationService = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         mHUDHeadingManager = (HUDHeadingManager) HUDOS.getHUDService(HUDOS.HUD_HEADING_SERVICE);
+        tileManager = new TilesManager(this, mHUDConnectivityManager);
 
         System.load("/system/lib/libreconinstruments_jni.so");
     }
@@ -55,7 +57,7 @@ public class MapActivity extends Activity implements LocationListener, HeadLocat
     protected void onResume() {
         super.onResume();
 
-        mLocationService.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 5, this);
+        mLocationService.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 5, tileManager);
         mHUDHeadingManager.register(this);
 
         if (!tileUrl.isEmpty())
@@ -66,42 +68,8 @@ public class MapActivity extends Activity implements LocationListener, HeadLocat
     protected void onPause() {
         super.onPause();
 
-        mLocationService.removeUpdates(this);
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-
-        int zoom = 18;
-        double lon = location.getLongitude();
-        double lat = location.getLatitude();
-
-        int x = (int) Math.floor((lon + 180) / 360 * (1 << zoom));
-        int y = (int) Math.floor((1 - Math.log(Math.tan(Math.toRadians(lat)) + 1 / Math.cos(Math.toRadians(lat))) / Math.PI) / 2 * (1 << zoom));
-
-        //http://[abc].tile2.opencyclemap.org/transport/zoom/x/y.png
-        String newUrl = String.format(Locale.US, "http://a.tile2.opencyclemap.org/transport/%1$d/%2$d/%3$d.png", zoom, x, y);
-        Log.d(TAG, newUrl);
-
-        if (!newUrl.equals(tileUrl)) {
-            tileUrl = newUrl;
-            new DownloadHUDImageTask(mImage).execute(tileUrl);
-        }
-    }
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-
+        mLocationService.removeUpdates(tileManager);
+        mHUDHeadingManager.unregister(this);
     }
 
     float currentYaw = 0;
@@ -118,6 +86,11 @@ public class MapActivity extends Activity implements LocationListener, HeadLocat
         Matrix matrix = new Matrix();
         matrix.postRotate(currentYaw, 128, 128);
         mImage.setImageMatrix(matrix);
+    }
+
+    @Override
+    public void onTiles(Bitmap[] bitmaps) {
+
     }
 
     private class DownloadHUDImageTask extends AsyncTask<String, Void, Bitmap> {
