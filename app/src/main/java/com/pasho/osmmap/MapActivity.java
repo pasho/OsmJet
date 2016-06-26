@@ -7,6 +7,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
+import android.graphics.RectF;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -87,6 +88,11 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
         Matrix matrix = new Matrix();
         int mid = 256 * 3 / 2;
         matrix.postRotate(currentYaw, mid, mid);
+
+        int dx = -(3 * 256 - mImage.getWidth()) / 2;
+        int dy = -(3 * 256 - mImage.getHeight()) / 2;
+        matrix.postTranslate(dx, dy);
+
         mImage.setImageMatrix(matrix);
     }
 
