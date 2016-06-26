@@ -20,8 +20,8 @@ public class TilesManager implements LocationListener {
     private final ITilesConsumer consumer;
     private final HUDConnectivityManager connectivityManager;
 
-    private int x = 0;
-    private int y = 0;
+    private int tileX = 0;
+    private int tileY = 0;
     private int zoom = 18;
 
     private final static char[] Servers = new char[]{'a', 'b', 'c'};
@@ -48,19 +48,24 @@ public class TilesManager implements LocationListener {
         double lon = location.getLongitude();
         double lat = location.getLatitude();
 
-        int x = (int) Math.floor((lon + 180) / 360 * (1 << zoom));
-        int y = (int) Math.floor((1 - Math.log(Math.tan(Math.toRadians(lat)) + 1 / Math.cos(Math.toRadians(lat))) / Math.PI) / 2 * (1 << zoom));
+        double actualX = (lon + 180) / 360 * (1 << zoom);
+        int tileX = (int) Math.floor(actualX);
+        double actualY = (1 - Math.log(Math.tan(Math.toRadians(lat)) + 1 / Math.cos(Math.toRadians(lat))) / Math.PI) / 2 * (1 << zoom);
+        int tileY = (int) Math.floor(actualY);
 
-        if (x == this.x && y == this.y)
+        int x = (int)(actualX - tileX) * 256 + 256;
+        int y = (int)(actualY - tileY) * 256 + 256;
+
+        if (tileX == this.tileX && tileY == this.tileY)
             return;
 
-        this.x = x;
-        this.y = y;
+        this.tileX = tileX;
+        this.tileY = tileY;
 
         Bitmap[] bitmaps = new Bitmap[9];
         for (int i = -1; i <= 1; i++) {
             for (int j = -1; j <= 1; j++) {
-                String url = getUrl(x + j, y + i);
+                String url = getUrl(tileX + j, tileY + i);
                 int n = (i + 1) * 3 + (j + 1);
                 new DownLoadTileTask(bitmaps, n, url).execute();
             }
