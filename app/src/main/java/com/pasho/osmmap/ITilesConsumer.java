@@ -7,4 +7,5 @@ import android.graphics.Bitmap;
  */
 public interface ITilesConsumer {
     void onTiles(Bitmap[] bitmaps);
+    void onTilePosition(int[] xy);
 }

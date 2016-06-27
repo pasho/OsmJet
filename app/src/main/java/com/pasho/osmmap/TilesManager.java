@@ -54,8 +54,10 @@ public class TilesManager implements LocationListener {
         double actualY = (1 - Math.log(Math.tan(Math.toRadians(lat)) + 1 / Math.cos(Math.toRadians(lat))) / Math.PI) / 2 * (1 << zoom);
         int tileY = (int) Math.floor(actualY);
 
-        int x = (int)(actualX - tileX) * 256 + 256;
-        int y = (int)(actualY - tileY) * 256 + 256;
+        int x = (int)((actualX - tileX) * 256);
+        int y = (int)((actualY - tileY) * 256);
+
+        consumer.onTilePosition(new int[]{x, y});
 
         if (tileX == this.tileX && tileY == this.tileY)
             return;

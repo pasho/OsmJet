@@ -9,6 +9,7 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.StrictMode;
 import android.util.Log;
 import android.widget.ImageView;
 
@@ -26,6 +27,9 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
     private ImageView imageView = null;
     private LocationManager locationService;
     private TilesManager tileManager;
+
+    private float currentYaw = 0;
+    int[] currentTilePos = new int[]{128, 128};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,8 +63,6 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
         headingManager.unregister(this);
     }
 
-    float currentYaw = 0;
-
     @Override
     public void onHeadLocation(float yaw, float pitch, float roll) {
         if (Math.abs(yaw - currentYaw) < 5)
@@ -68,13 +70,18 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
 
         currentYaw = yaw;
 
+        alignMap();
+    }
+
+    private void alignMap() {
         Matrix matrix = new Matrix();
         int mapSize = tileSize * 3;
-        int mid = mapSize / 2;
-        matrix.postRotate(currentYaw, mid, mid);
+        int pivotX = tileSize + currentTilePos[0];
+        int pivotY = tileSize + currentTilePos[1];
+        matrix.setRotate(currentYaw, pivotX, pivotY);
 
-        int dx = -(mapSize - imageView.getWidth()) / 2;
-        int dy = -(mapSize - imageView.getHeight()) / 2;
+        int dx = -(mapSize - imageView.getWidth()) / 2 - (tileSize / 2 - currentTilePos[0]);
+        int dy = -(mapSize - imageView.getHeight()) / 2 - (tileSize / 2 - currentTilePos[1]);
         matrix.postTranslate(dx, dy);
 
         imageView.setImageMatrix(matrix);
@@ -93,5 +100,17 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
         }
 
         imageView.setImageBitmap(combo);
+    }
+
+    @Override
+    public void onTilePosition(int[] xy) {
+        if(Math.abs(currentTilePos[0] - xy[0]) + Math.abs(currentTilePos[1] - xy[1]) < 2)
+            return;
+
+        Log.d(TAG, String.format("%1$d,%2$d", xy[0], xy[1]));
+
+        currentTilePos = xy;
+
+        alignMap();
     }
 }
