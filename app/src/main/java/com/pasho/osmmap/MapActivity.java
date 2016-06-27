@@ -92,10 +92,6 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
             canvas.drawBitmap(bitmaps[i], x * tileSize, y * tileSize, null);
         }
 
-        Paint paint = new Paint();
-        paint.setColor(Color.BLACK);
-        canvas.drawCircle(mapSize / 2, mapSize / 2, 10, paint);
-
         imageView.setImageBitmap(combo);
     }
 }
