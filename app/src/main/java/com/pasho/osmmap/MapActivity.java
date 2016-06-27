@@ -76,13 +76,12 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
     private void alignMap() {
         Matrix matrix = new Matrix();
         int mapSize = tileSize * 3;
-        int pivotX = tileSize + currentTilePos[0];
-        int pivotY = tileSize + currentTilePos[1];
-        matrix.setRotate(currentYaw, pivotX, pivotY);
 
         int dx = -(mapSize - imageView.getWidth()) / 2 - (tileSize / 2 - currentTilePos[0]);
         int dy = -(mapSize - imageView.getHeight()) / 2 - (tileSize / 2 - currentTilePos[1]);
-        matrix.postTranslate(dx, dy);
+
+        matrix.setTranslate(dx, dy);
+        matrix.postRotate(currentYaw, imageView.getWidth() / 2, imageView.getHeight() / 2);
 
         imageView.setImageMatrix(matrix);
     }
