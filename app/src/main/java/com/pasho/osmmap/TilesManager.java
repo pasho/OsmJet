@@ -40,7 +40,8 @@ public class TilesManager implements LocationListener {
     private String getUrl(int x, int y) {
         double rand = Math.random();
         char server = Servers[(int) Math.floor(rand * 3)];
-        return String.format(Locale.US, "http://%1$c.tile2.opencyclemap.org/transport/%2$d/%3$d/%4$d.png", server, zoom, x, y);
+//        return String.format(Locale.US, "http://%1$c.tile2.opencyclemap.org/transport/%2$d/%3$d/%4$d.png", server, zoom, x, y);
+        return String.format(Locale.US, "http://%1$c.tile.opencyclemap.org/cycle/%2$d/%3$d/%4$d.png", server, zoom, x, y);
     }
 
     @Override
