@@ -4,12 +4,9 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Matrix;
-import android.graphics.Paint;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.os.StrictMode;
 import android.util.Log;
 import android.widget.ImageView;
 
@@ -28,7 +25,7 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
     private LocationManager locationService;
     private TilesManager tileManager;
 
-    private float currentYaw = 0;
+    private float currentRotation = 0;
     int[] currentTilePos = new int[]{128, 128};
 
     @Override
@@ -65,10 +62,13 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
 
     @Override
     public void onHeadLocation(float yaw, float pitch, float roll) {
-        if (Math.abs(yaw - currentYaw) < 5)
+        float rotation = -yaw;
+        if (Math.abs(rotation - currentRotation) < 5)
             return;
 
-        currentYaw = yaw;
+        currentRotation = rotation;
+
+        Log.d(TAG, String.format("YAW: %1$f", rotation));
 
         alignMap();
     }
@@ -77,11 +77,20 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
         Matrix matrix = new Matrix();
         int mapSize = tileSize * 3;
 
-        int dx = -(mapSize - imageView.getWidth()) / 2 - (tileSize / 2 - currentTilePos[0]);
-        int dy = -(mapSize - imageView.getHeight()) / 2 - (tileSize / 2 - currentTilePos[1]);
+        int tcx = tileSize + currentTilePos[0];
+        int tcy = tileSize + currentTilePos[1];
+
+        int vcx = imageView.getWidth() / 2;
+        int vcy = imageView.getHeight() / 2;
+
+        int dx = vcx - tcx;
+        int dy = vcy - tcy;
+
+//        int dx = -(mapSize - imageView.getWidth()) / 2 - (tileSize / 2 - currentTilePos[0]);
+//        int dy = -(mapSize - imageView.getHeight()) / 2 - (tileSize / 2 - currentTilePos[1]);
 
         matrix.setTranslate(dx, dy);
-        matrix.postRotate(currentYaw, imageView.getWidth() / 2, imageView.getHeight() / 2);
+        matrix.postRotate(currentRotation, imageView.getWidth() / 2, imageView.getHeight() / 2);
 
         imageView.setImageMatrix(matrix);
     }
