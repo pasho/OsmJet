@@ -54,8 +54,8 @@ public class TilesManager implements LocationListener {
         double actualY = (1 - Math.log(Math.tan(Math.toRadians(lat)) + 1 / Math.cos(Math.toRadians(lat))) / Math.PI) / 2 * (1 << zoom);
         int tileY = (int) Math.floor(actualY);
 
-        int x = (int)((actualX - tileX) * 256);
-        int y = (int)((actualY - tileY) * 256);
+        int x = (int)((actualX - tileX) * Consts.tileSize) + Consts.tileSize;
+        int y = (int)((actualY - tileY) * Consts.tileSize) + Consts.tileSize;
 
         consumer.onTilePosition(new int[]{x, y});
 
@@ -70,7 +70,7 @@ public class TilesManager implements LocationListener {
             for (int j = -1; j <= 1; j++) {
                 String url = getUrl(tileX + j, tileY + i);
                 int n = (i + 1) * 3 + (j + 1);
-                new DownLoadTileTask(bitmaps, n, url).execute();
+                new DownLoadTileTask(bitmaps, n, url, new int[]{x, y}).execute();
             }
         }
     }
@@ -90,21 +90,23 @@ public class TilesManager implements LocationListener {
 
     }
 
-    private void onAllTilesDownloaded(Bitmap[] bitmaps) {
+    private void onAllTilesDownloaded(Bitmap[] bitmaps, int[] xy) {
         tileBitmaps = bitmaps;
-        consumer.onTiles(bitmaps);
+        consumer.onTiles(bitmaps, xy);
     }
 
     private class DownLoadTileTask extends AsyncTask<Void, Void, Bitmap> {
 
-        private final Bitmap[] _bitmaps;
-        private final int _position;
+        private final Bitmap[] bitmaps;
+        private final int position;
         private String url;
+        private int[] xy;
 
-        public DownLoadTileTask(Bitmap[] container, int position, String url) {
-            this._bitmaps = container;
-            this._position = position;
+        public DownLoadTileTask(Bitmap[] container, int position, String url, int[] xy) {
+            this.bitmaps = container;
+            this.position = position;
             this.url = url;
+            this.xy = xy;
         }
 
         @Override
@@ -126,10 +128,10 @@ public class TilesManager implements LocationListener {
 
         @Override
         protected void onPostExecute(Bitmap result) {
-            _bitmaps[_position] = result;
+            bitmaps[position] = result;
 
             boolean hasHoles = false;
-            for (Bitmap b : _bitmaps) {
+            for (Bitmap b : bitmaps) {
                 if (b == null) {
                     hasHoles = true;
                     break;
@@ -137,7 +139,7 @@ public class TilesManager implements LocationListener {
             }
 
             if (!hasHoles) {
-                onAllTilesDownloaded(_bitmaps);
+                onAllTilesDownloaded(bitmaps, xy);
             }
         }
     }

@@ -17,16 +17,14 @@ import com.reconinstruments.os.hardware.sensors.HeadLocationListener;
 
 public class MapActivity extends Activity implements HeadLocationListener, ITilesConsumer {
     private final String TAG = this.getClass().getSimpleName();
-    private final int tileSize = 256;
 
-    private HUDConnectivityManager connectivityManager;
     private HUDHeadingManager headingManager;
-    private ImageView imageView = null;
+    private ImageView imageView;
     private LocationManager locationService;
     private TilesManager tileManager;
 
-    private float currentRotation = 0;
-    int[] currentTilePos = new int[]{128, 128};
+    private float mapRot = 0;
+    int[] mapPos = Consts.getMapMiddle();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,7 +34,7 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
 
         imageView = (ImageView) findViewById(R.id.imageView);
 
-        connectivityManager = (HUDConnectivityManager) HUDOS.getHUDService(HUDOS.HUD_CONNECTIVITY_SERVICE);
+        HUDConnectivityManager connectivityManager = (HUDConnectivityManager) HUDOS.getHUDService(HUDOS.HUD_CONNECTIVITY_SERVICE);
         locationService = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         headingManager = (HUDHeadingManager) HUDOS.getHUDService(HUDOS.HUD_HEADING_SERVICE);
         tileManager = new TilesManager(this, connectivityManager);
@@ -63,48 +61,41 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
     @Override
     public void onHeadLocation(float yaw, float pitch, float roll) {
         float rotation = -yaw;
-        if (Math.abs(rotation - currentRotation) < 5)
+        if (Math.abs(rotation - mapRot) < 5)
             return;
 
-        currentRotation = rotation;
+        mapRot = rotation;
 
-        Log.d(TAG, String.format("YAW: %1$f", rotation));
+        Log.d(TAG, String.format("MapRot: %1$f", rotation));
 
         alignMap();
     }
 
     private void alignMap() {
         Matrix matrix = new Matrix();
-        int mapSize = tileSize * 3;
-
-        int tcx = tileSize + currentTilePos[0];
-        int tcy = tileSize + currentTilePos[1];
 
         int vcx = imageView.getWidth() / 2;
         int vcy = imageView.getHeight() / 2;
 
-        int dx = vcx - tcx;
-        int dy = vcy - tcy;
-
-//        int dx = -(mapSize - imageView.getWidth()) / 2 - (tileSize / 2 - currentTilePos[0]);
-//        int dy = -(mapSize - imageView.getHeight()) / 2 - (tileSize / 2 - currentTilePos[1]);
+        int dx = vcx - mapPos[0];
+        int dy = vcy - mapPos[1];
 
         matrix.setTranslate(dx, dy);
-        matrix.postRotate(currentRotation, imageView.getWidth() / 2, imageView.getHeight() / 2);
+        matrix.postRotate(mapRot, imageView.getWidth() / 2, imageView.getHeight() / 2);
 
         imageView.setImageMatrix(matrix);
     }
 
     @Override
-    public void onTiles(Bitmap[] bitmaps) {
-        int mapSize = tileSize * 3;
-        Bitmap combo = Bitmap.createBitmap(mapSize, mapSize, Bitmap.Config.ARGB_8888);
+    public void onTiles(Bitmap[] bitmaps, int[] xy) {
+
+        Bitmap combo = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(combo);
         for (int i = 0; i < 9; i++){
             int y = i / 3;
             int x = i - y * 3;
 
-            canvas.drawBitmap(bitmaps[i], x * tileSize, y * tileSize, null);
+            canvas.drawBitmap(bitmaps[i], x * Consts.tileSize, y * Consts.tileSize, null);
         }
 
         imageView.setImageBitmap(combo);
@@ -112,12 +103,12 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
 
     @Override
     public void onTilePosition(int[] xy) {
-        if(Math.abs(currentTilePos[0] - xy[0]) + Math.abs(currentTilePos[1] - xy[1]) < 2)
+        if(Math.abs(mapPos[0] - xy[0]) + Math.abs(mapPos[1] - xy[1]) < 2)
             return;
 
-        Log.d(TAG, String.format("%1$d,%2$d", xy[0], xy[1]));
+        Log.d(TAG, String.format("Map Pos: %1$d,%2$d", xy[0], xy[1]));
 
-        currentTilePos = xy;
+        mapPos = xy;
 
         alignMap();
     }
