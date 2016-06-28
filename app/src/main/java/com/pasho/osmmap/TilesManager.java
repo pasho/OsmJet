@@ -54,6 +54,7 @@ public class TilesManager implements LocationListener {
         double actualY = (1 - Math.log(Math.tan(Math.toRadians(lat)) + 1 / Math.cos(Math.toRadians(lat))) / Math.PI) / 2 * (1 << zoom);
         int tileY = (int) Math.floor(actualY);
 
+        //must be absolute!
         int x = (int)((actualX - tileX) * Consts.tileSize) + Consts.tileSize;
         int y = (int)((actualY - tileY) * Consts.tileSize) + Consts.tileSize;
 
