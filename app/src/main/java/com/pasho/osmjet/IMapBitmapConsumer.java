@@ -1,4 +1,4 @@
-package com.pasho.osmmap;
+package com.pasho.osmjet;
 
 import android.graphics.Bitmap;
 

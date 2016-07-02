@@ -1,4 +1,4 @@
-package com.pasho.osmmap;
+package com.pasho.osmjet;
 
 /**
  * Created by Pavel on 28/06/2016.
