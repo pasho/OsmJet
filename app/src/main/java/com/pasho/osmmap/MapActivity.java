@@ -15,13 +15,13 @@ import com.reconinstruments.os.connectivity.HUDConnectivityManager;
 import com.reconinstruments.os.hardware.sensors.HUDHeadingManager;
 import com.reconinstruments.os.hardware.sensors.HeadLocationListener;
 
-public class MapActivity extends Activity implements HeadLocationListener, ITilesConsumer {
+public class MapActivity extends Activity implements HeadLocationListener, IMapBitmapConsumer {
     private final String TAG = this.getClass().getSimpleName();
 
     private HUDHeadingManager headingManager;
     private ImageView imageView;
     private LocationManager locationService;
-    private TilesManager tileManager;
+    private MapBitmapManager tileManager;
 
     private float mapRot = 0;
     private double[] mapPos = {0, 0};
@@ -38,7 +38,7 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
         HUDConnectivityManager connectivityManager = (HUDConnectivityManager) HUDOS.getHUDService(HUDOS.HUD_CONNECTIVITY_SERVICE);
         locationService = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         headingManager = (HUDHeadingManager) HUDOS.getHUDService(HUDOS.HUD_HEADING_SERVICE);
-        tileManager = new TilesManager(this, connectivityManager);
+        tileManager = new MapBitmapManager(this, connectivityManager);
 
         System.load("/system/lib/libreconinstruments_jni.so");
     }
@@ -88,7 +88,7 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
     }
 
     @Override
-    public void onTiles(Bitmap[] bitmaps, int[] centralTile) {
+    public void onMapBitmap(Bitmap[] bitmaps, int[] centralTile) {
 
         Bitmap combo = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(combo);
