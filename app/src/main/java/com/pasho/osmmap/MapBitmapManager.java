@@ -1,7 +1,9 @@
 package com.pasho.osmmap;
 
+import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.location.Location;
 import android.location.LocationListener;
 import android.os.AsyncTask;
@@ -28,18 +30,12 @@ public class MapBitmapManager implements LocationListener {
 
     private final static char[] Servers = new char[]{'a', 'b', 'c'};
 
-
-    public Bitmap[] getTileBitmaps() {
-        return tileBitmaps;
-    }
-
-    private Bitmap[] tileBitmaps;
-
     public MapBitmapManager(IMapBitmapConsumer consumer, HUDConnectivityManager connectivityManager) {
         this.consumer = consumer;
         this.connectivityManager = connectivityManager;
     }
 
+    @SuppressLint("DefaultLocale")
     private String getUrl(int x, int y) {
         double rand = Math.random();
         char server = Servers[(int) Math.floor(rand * 3)];
@@ -73,16 +69,14 @@ public class MapBitmapManager implements LocationListener {
     }
 
     private void downloadTiles() {
-
         this.currentDownloadAttempt++;
         this.currentBitmaps.clear();
 
-        Bitmap[] bitmaps = new Bitmap[9];
         for (int i = -1; i <= 1; i++) {
             for (int j = -1; j <= 1; j++) {
                 String url = getUrl(this.centerTileXy[0] + j, this.centerTileXy[1] + i);
-                int n = (i + 1) * 3 + (j + 1);
-                new DownLoadTileTask(bitmaps, n, url, this.currentDownloadAttempt).execute();
+                int index = (i + 1) * 3 + (j + 1);
+                new DownLoadTileTask(index, url, this.currentDownloadAttempt).execute();
             }
         }
     }
@@ -96,10 +90,18 @@ public class MapBitmapManager implements LocationListener {
         if(this.currentBitmaps.size() == 9)
             onAllTilesDownloaded();
     }
-    
-    private void onAllTilesDownloaded(Bitmap[] bitmaps, int[] xy) {
-        tileBitmaps = bitmaps;
-        consumer.onMapBitmap(bitmaps, xy);
+
+    private void onAllTilesDownloaded() {
+        Bitmap mapBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(mapBitmap);
+        for (int i = 0; i < 9; i++){
+            int y = i / 3;
+            int x = i - y * 3;
+
+            canvas.drawBitmap(this.currentBitmaps.get(i), x * Consts.tileSize, y * Consts.tileSize, null);
+        }
+
+        consumer.onMapBitmap(mapBitmap);
     }
 
     @Override

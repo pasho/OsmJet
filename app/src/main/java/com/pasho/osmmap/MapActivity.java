@@ -3,7 +3,6 @@ package com.pasho.osmmap;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.location.LocationManager;
 import android.os.Bundle;
@@ -24,8 +23,7 @@ public class MapActivity extends Activity implements HeadLocationListener, IMapB
     private MapBitmapManager tileManager;
 
     private float mapRot = 0;
-    private double[] mapPos = {0, 0};
-    private int[] centralTile = {0, 0};
+    private int[] mapPos = {0, 0};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,7 +38,7 @@ public class MapActivity extends Activity implements HeadLocationListener, IMapB
         headingManager = (HUDHeadingManager) HUDOS.getHUDService(HUDOS.HUD_HEADING_SERVICE);
         tileManager = new MapBitmapManager(this, connectivityManager);
 
-        System.load("/system/lib/libreconinstruments_jni.so");
+        System.loadLibrary("/system/lib/libreconinstruments_jni.so");
     }
 
     @Override
@@ -88,25 +86,12 @@ public class MapActivity extends Activity implements HeadLocationListener, IMapB
     }
 
     @Override
-    public void onMapBitmap(Bitmap[] bitmaps, int[] centralTile) {
-
-        Bitmap combo = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(combo);
-        for (int i = 0; i < 9; i++){
-            int y = i / 3;
-            int x = i - y * 3;
-
-            canvas.drawBitmap(bitmaps[i], x * Consts.tileSize, y * Consts.tileSize, null);
-        }
-
-        imageView.setImageBitmap(combo);
-
-        this.centralTile = centralTile;
-        alignMap();
+    public void onMapBitmap(Bitmap bitmap) {
+        imageView.setImageBitmap(bitmap);
     }
 
     @Override
-    public void onViewerPosition(double[] xy) {
+    public void onViewerPosition(int[] xy) {
         if(Math.abs(mapPos[0] - xy[0]) + Math.abs(mapPos[1] - xy[1]) < 2)
             return;
 
