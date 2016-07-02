@@ -24,7 +24,8 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
     private TilesManager tileManager;
 
     private float mapRot = 0;
-    int[] mapPos = Consts.getMapMiddle();
+    private double[] mapPos = {0, 0};
+    private int[] centralTile = {0, 0};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,7 +88,7 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
     }
 
     @Override
-    public void onTiles(Bitmap[] bitmaps, int[] xy) {
+    public void onTiles(Bitmap[] bitmaps, int[] centralTile) {
 
         Bitmap combo = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(combo);
@@ -99,10 +100,13 @@ public class MapActivity extends Activity implements HeadLocationListener, ITile
         }
 
         imageView.setImageBitmap(combo);
+
+        this.centralTile = centralTile;
+        alignMap();
     }
 
     @Override
-    public void onTilePosition(int[] xy) {
+    public void onViewerPosition(double[] xy) {
         if(Math.abs(mapPos[0] - xy[0]) + Math.abs(mapPos[1] - xy[1]) < 2)
             return;
 
