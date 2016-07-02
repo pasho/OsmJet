@@ -22,7 +22,7 @@ public class MapBitmapManager implements LocationListener {
     private final IMapBitmapConsumer consumer;
     private final HUDConnectivityManager connectivityManager;
 
-    private int[] centerTileXy = {0, 0};
+    private int[] currentCenterTileXy = {0, 0};
     private int[] viewerPixelPosition = {0, 0};
     private int zoom = 18;
     private int currentDownloadAttempt = 0;
@@ -60,45 +60,93 @@ public class MapBitmapManager implements LocationListener {
 
         this.consumer.onViewerPosition(this.viewerPixelPosition);
 
-        if (tileX == this.centerTileXy[0] && tileY == this.centerTileXy[1])
+        if (tileX == this.currentCenterTileXy[0] && tileY == this.currentCenterTileXy[1])
             return;
 
-        this.centerTileXy = new int[]{tileX, tileY};
+        int[] oldCenterTileXy = this.currentCenterTileXy;
 
+        this.currentCenterTileXy = new int[]{tileX, tileY};
+
+        tryReuseCurrentTiles(oldCenterTileXy);
         downloadTiles();
     }
 
-    private void downloadTiles() {
-        this.currentDownloadAttempt++;
-        this.currentBitmaps.clear();
+    private void tryReuseCurrentTiles(int[] oldCenterTileXy) {
+        ArrayList<Bitmap> oldBitmaps = (ArrayList<Bitmap>) currentBitmaps.clone();
+        int dx = currentCenterTileXy[0] - oldCenterTileXy[0];
+        int dy = currentCenterTileXy[1] - oldCenterTileXy[1];
 
-        for (int i = -1; i <= 1; i++) {
-            for (int j = -1; j <= 1; j++) {
-                String url = getUrl(this.centerTileXy[0] + j, this.centerTileXy[1] + i);
-                int index = (i + 1) * 3 + (j + 1);
+        for (int i = 0; i < 9; i++){
+            int newGridX = indexToGridX(i);
+            int newGridY = indexToGridY(i);
+
+            int oldGridX = newGridX - dx;
+            int oldGridY = newGridY - dy;
+
+            int oldTileIndex = gridXyToIndex(oldGridY, oldGridX);
+
+            if(oldTileIndex >= 0 && oldTileIndex < 9){
+                currentBitmaps.set(i, oldBitmaps.get(oldTileIndex));
+            }
+            else{
+                currentBitmaps.set(i, null);
+            }
+        }
+    }
+
+    private int gridXyToIndex(int[] xy){
+        return xy[1] * 3 + xy[0];
+    }
+
+    private int gridXyToIndex(int x, int y){
+        return y * 3 + x;
+    }
+
+    private int[] indexToGridXy(int index){
+        return new int[]{indexToGridX(index), indexToGridY(index)};
+    }
+    private int indexToGridX(int index){
+        return index % 3;
+    }
+    private int indexToGridY(int index){
+        return index / 3;
+    }
+
+    private void downloadTiles() {
+        currentDownloadAttempt++;
+
+        for (int y = 0; y < 3; y++) {
+            for (int x = 0; x < 3; x++) {
+                int index = gridXyToIndex(x, y);
+
+                if(currentBitmaps.get(index) != null) continue;
+
+                int tileX = this.currentCenterTileXy[0] + x - 1;
+                int tileY = this.currentCenterTileXy[1] + y - 1;
+                String url = getUrl(tileX, tileY);
                 new DownLoadTileTask(index, url, this.currentDownloadAttempt).execute();
             }
         }
     }
 
     private void onTileDownloaded(Bitmap bitmap, int index, int attempt){
-        if(attempt != this.currentDownloadAttempt)
-            return;
+        if(attempt != currentDownloadAttempt) return;
 
-        this.currentBitmaps.add(index, bitmap);
-
-        if(this.currentBitmaps.size() == 9)
-            onAllTilesDownloaded();
+        currentBitmaps.set(index, bitmap);
+        createAndPostBitmap();
     }
 
-    private void onAllTilesDownloaded() {
+    private void createAndPostBitmap() {
         Bitmap mapBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(mapBitmap);
         for (int i = 0; i < 9; i++){
-            int y = i / 3;
-            int x = i - y * 3;
+            int x = indexToGridX(i);
+            int y = indexToGridY(i);
 
-            canvas.drawBitmap(this.currentBitmaps.get(i), x * Consts.tileSize, y * Consts.tileSize, null);
+            Bitmap bitmap = this.currentBitmaps.get(i);
+            if(bitmap != null) {
+                canvas.drawBitmap(bitmap, x * Consts.tileSize, y * Consts.tileSize, null);
+            }
         }
 
         consumer.onMapBitmap(mapBitmap);

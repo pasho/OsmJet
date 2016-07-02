@@ -38,7 +38,7 @@ public class MapActivity extends Activity implements HeadLocationListener, IMapB
         headingManager = (HUDHeadingManager) HUDOS.getHUDService(HUDOS.HUD_HEADING_SERVICE);
         tileManager = new MapBitmapManager(this, connectivityManager);
 
-        System.loadLibrary("/system/lib/libreconinstruments_jni.so");
+        System.load("/system/lib/libreconinstruments_jni.so");
     }
 
     @Override
