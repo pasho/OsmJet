@@ -26,11 +26,16 @@ public class MapBitmapManager implements LocationListener {
     private int[] viewerPixelPosition = {0, 0};
     private int zoom = 18;
     private int currentDownloadAttempt = 0;
-    private ArrayList<Bitmap> currentBitmaps = new ArrayList<Bitmap>(9);
+    private ArrayList<Bitmap> currentBitmaps = new ArrayList<Bitmap>();
 
     private final static char[] Servers = new char[]{'a', 'b', 'c'};
 
     public MapBitmapManager(IMapBitmapConsumer consumer, HUDConnectivityManager connectivityManager) {
+
+        for(int i = 0; i < 9; i++){
+            currentBitmaps.add(null);
+        }
+
         this.consumer = consumer;
         this.connectivityManager = connectivityManager;
     }
