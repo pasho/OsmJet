@@ -32,7 +32,7 @@ public class MapBitmapManager implements LocationListener {
 
     public MapBitmapManager(IMapBitmapConsumer consumer, HUDConnectivityManager connectivityManager) {
 
-        for(int i = 0; i < 9; i++){
+        for (int i = 0; i < 9; i++) {
             currentBitmaps.add(null);
         }
 
@@ -81,40 +81,20 @@ public class MapBitmapManager implements LocationListener {
         int dx = currentCenterTileXy[0] - oldCenterTileXy[0];
         int dy = currentCenterTileXy[1] - oldCenterTileXy[1];
 
-        for (int i = 0; i < 9; i++){
-            int newGridX = indexToGridX(i);
-            int newGridY = indexToGridY(i);
+        for (int i = 0; i < 9; i++) {
+            int newGridX = i % 3;
+            int newGridY = i / 3;
 
-            int oldGridX = newGridX - dx;
-            int oldGridY = newGridY - dy;
+            int oldGridX = newGridX + dx;
+            int oldGridY = newGridY + dy;
 
-            int oldTileIndex = gridXyToIndex(oldGridY, oldGridX);
-
-            if(oldTileIndex >= 0 && oldTileIndex < 9){
+            if (oldGridX > 2 || oldGridX < 0 || oldGridY < 0 || oldGridY > 2) {
+                currentBitmaps.set(i, null);
+            } else {
+                int oldTileIndex = oldGridY * 3 + oldGridX;
                 currentBitmaps.set(i, oldBitmaps.get(oldTileIndex));
             }
-            else{
-                currentBitmaps.set(i, null);
-            }
         }
-    }
-
-    private int gridXyToIndex(int[] xy){
-        return xy[1] * 3 + xy[0];
-    }
-
-    private int gridXyToIndex(int x, int y){
-        return y * 3 + x;
-    }
-
-    private int[] indexToGridXy(int index){
-        return new int[]{indexToGridX(index), indexToGridY(index)};
-    }
-    private int indexToGridX(int index){
-        return index % 3;
-    }
-    private int indexToGridY(int index){
-        return index / 3;
     }
 
     private void downloadTiles() {
@@ -122,9 +102,9 @@ public class MapBitmapManager implements LocationListener {
 
         for (int y = 0; y < 3; y++) {
             for (int x = 0; x < 3; x++) {
-                int index = gridXyToIndex(x, y);
+                int index = y * 3 + x;
 
-                if(currentBitmaps.get(index) != null) continue;
+                if (currentBitmaps.get(index) != null) continue;
 
                 int tileX = this.currentCenterTileXy[0] + x - 1;
                 int tileY = this.currentCenterTileXy[1] + y - 1;
@@ -134,8 +114,8 @@ public class MapBitmapManager implements LocationListener {
         }
     }
 
-    private void onTileDownloaded(Bitmap bitmap, int index, int attempt){
-        if(attempt != currentDownloadAttempt) return;
+    private void onTileDownloaded(Bitmap bitmap, int index, int attempt) {
+        if (attempt != currentDownloadAttempt) return;
 
         currentBitmaps.set(index, bitmap);
         createAndPostBitmap();
@@ -144,12 +124,12 @@ public class MapBitmapManager implements LocationListener {
     private void createAndPostBitmap() {
         Bitmap mapBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(mapBitmap);
-        for (int i = 0; i < 9; i++){
-            int x = indexToGridX(i);
-            int y = indexToGridY(i);
+        for (int i = 0; i < 9; i++) {
+            int x = i % 3;
+            int y = i / 3;
 
             Bitmap bitmap = this.currentBitmaps.get(i);
-            if(bitmap != null) {
+            if (bitmap != null) {
                 canvas.drawBitmap(bitmap, x * Consts.tileSize, y * Consts.tileSize, null);
             }
         }

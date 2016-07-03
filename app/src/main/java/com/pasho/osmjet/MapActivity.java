@@ -65,8 +65,6 @@ public class MapActivity extends Activity implements HeadLocationListener, IMapB
 
         mapRot = rotation;
 
-        Log.d(TAG, String.format("MapRot: %1$f", rotation));
-
         alignMap();
     }
 
@@ -94,8 +92,6 @@ public class MapActivity extends Activity implements HeadLocationListener, IMapB
     public void onViewerPosition(int[] xy) {
         if(Math.abs(mapPos[0] - xy[0]) + Math.abs(mapPos[1] - xy[1]) < 2)
             return;
-
-        Log.d(TAG, String.format("Map Pos: %1$d,%2$d", xy[0], xy[1]));
 
         mapPos = xy;
 
