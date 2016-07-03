@@ -95,6 +95,8 @@ public class MapBitmapManager implements LocationListener {
                 currentBitmaps.set(i, oldBitmaps.get(oldTileIndex));
             }
         }
+
+        createAndPostBitmap();
     }
 
     private void downloadTiles() {
