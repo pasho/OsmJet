@@ -14,6 +14,7 @@ import com.reconinstruments.os.connectivity.http.HUDHttpRequest;
 import com.reconinstruments.os.connectivity.http.HUDHttpResponse;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 
 public class MapBitmapManager implements LocationListener {
 
@@ -110,8 +111,15 @@ public class MapBitmapManager implements LocationListener {
         createAndPostBitmap();
     }
 
+    private HashSet<DownLoadTileTask> downloadTasks = new HashSet<DownLoadTileTask>();
+
     private void downloadTiles() {
         currentDownloadAttempt++;
+
+        for (DownLoadTileTask task : downloadTasks){
+            task.cancel(true);
+        }
+        downloadTasks.clear();
 
         for (int y = 0; y < 3; y++) {
             for (int x = 0; x < 3; x++) {
@@ -122,7 +130,7 @@ public class MapBitmapManager implements LocationListener {
                 int tileX = this.currentCenterTileXy[0] + x - 1;
                 int tileY = this.currentCenterTileXy[1] + y - 1;
                 String url = getUrl(tileX, tileY);
-                new DownLoadTileTask(index, url, this.currentDownloadAttempt).execute();
+                downloadTasks.add((DownLoadTileTask) new DownLoadTileTask(index, url, this.currentDownloadAttempt).execute());
             }
         }
     }
@@ -196,6 +204,7 @@ public class MapBitmapManager implements LocationListener {
 
         @Override
         protected void onPostExecute(Bitmap bitmap) {
+            downloadTasks.remove(this);
             onTileDownloaded(bitmap, this.index, this.attempt);
         }
     }
