@@ -47,12 +47,20 @@ public class MapBitmapManager implements LocationListener {
 
         this.zoom = zoom;
 
-        int scaledMapSize = (int)(Consts.getMapSize() * Math.pow(2, deltaZoom));
+        double multiplier = Math.pow(2, deltaZoom);
+        int scaledMapSize = (int)(Consts.getMapSize() * multiplier);
 
         Bitmap scaledMapBitmap = Bitmap.createScaledBitmap(currentBitmap, scaledMapSize, scaledMapSize, true);
 
         if(deltaZoom > 0){
-            currentBitmap = Bitmap.createBitmap(scaledMapBitmap, Consts.getMapSize() / 2, Consts.getMapSize() / 2, Consts.getMapSize(), Consts.getMapSize());
+
+            int pivotX = (int)(viewerPixelPosition[0] * multiplier);
+            int pivotY = (int)(viewerPixelPosition[1] * multiplier);
+
+            int left = pivotX - viewerPixelPosition[0];
+            int top = pivotY - viewerPixelPosition[1];
+
+            currentBitmap = Bitmap.createBitmap(scaledMapBitmap, top, left, Consts.getMapSize(), Consts.getMapSize());
         }
         else{
             currentBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
