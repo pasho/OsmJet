@@ -4,10 +4,14 @@ import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.location.Location;
 import android.location.LocationListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 
 import com.reconinstruments.os.connectivity.HUDConnectivityManager;
 import com.reconinstruments.os.connectivity.http.HUDHttpRequest;
@@ -28,14 +32,33 @@ public class MapBitmapManager implements LocationListener {
     private int zoom = Consts.MinZoom;
     private int currentDownloadAttempt = 0;
     private ArrayList<Bitmap> currentBitmaps = new ArrayList<Bitmap>();
+    private Bitmap currentBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
 
     public int getZoom() {
         return zoom;
     }
 
     public void setZoom(int zoom) {
-        if(this.zoom == zoom) return;
+        if (this.zoom == zoom) return;
+
+        int deltaZoom = zoom - this.zoom;
+
         this.zoom = zoom;
+
+        int scaledMapSize = (int)(Consts.getMapSize() * Math.pow(2, deltaZoom));
+
+        Bitmap scaledMapBitmap = Bitmap.createScaledBitmap(currentBitmap, scaledMapSize, scaledMapSize, true);
+
+        if(deltaZoom > 0){
+            currentBitmap = Bitmap.createBitmap(scaledMapBitmap, Consts.getMapSize() / 2, Consts.getMapSize() / 2, Consts.getMapSize(), Consts.getMapSize());
+        }
+        else{
+            currentBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(currentBitmap);
+            canvas.drawBitmap(scaledMapBitmap, Consts.tileSize / 2, Consts.tileSize / 2, null);
+        }
+
+        consumer.onMapBitmap(currentBitmap);
 
         downloadTiles();
     }
@@ -116,7 +139,7 @@ public class MapBitmapManager implements LocationListener {
     private void downloadTiles() {
         currentDownloadAttempt++;
 
-        for (DownLoadTileTask task : downloadTasks){
+        for (DownLoadTileTask task : downloadTasks) {
             task.cancel(true);
         }
         downloadTasks.clear();
@@ -143,8 +166,8 @@ public class MapBitmapManager implements LocationListener {
     }
 
     private void createAndPostBitmap() {
-        Bitmap mapBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(mapBitmap);
+        //Bitmap mapBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(currentBitmap);
         for (int i = 0; i < 9; i++) {
             int x = i % 3;
             int y = i / 3;
@@ -155,7 +178,7 @@ public class MapBitmapManager implements LocationListener {
             }
         }
 
-        consumer.onMapBitmap(mapBitmap);
+        consumer.onMapBitmap(currentBitmap);
     }
 
     @Override
