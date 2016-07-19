@@ -7,6 +7,7 @@ import android.graphics.Matrix;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.widget.ImageView;
 
 import com.reconinstruments.os.HUDOS;
@@ -20,7 +21,7 @@ public class MapActivity extends Activity implements HeadLocationListener, IMapB
     private HUDHeadingManager headingManager;
     private ImageView imageView;
     private LocationManager locationService;
-    private MapBitmapManager tileManager;
+    private MapBitmapManager mapBitmapManager;
 
     private float mapRot = 0;
     private int[] mapPos = {0, 0};
@@ -36,7 +37,7 @@ public class MapActivity extends Activity implements HeadLocationListener, IMapB
         HUDConnectivityManager connectivityManager = (HUDConnectivityManager) HUDOS.getHUDService(HUDOS.HUD_CONNECTIVITY_SERVICE);
         locationService = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         headingManager = (HUDHeadingManager) HUDOS.getHUDService(HUDOS.HUD_HEADING_SERVICE);
-        tileManager = new MapBitmapManager(this, connectivityManager);
+        mapBitmapManager = new MapBitmapManager(this, connectivityManager);
 
         System.load("/system/lib/libreconinstruments_jni.so");
     }
@@ -45,7 +46,7 @@ public class MapActivity extends Activity implements HeadLocationListener, IMapB
     protected void onResume() {
         super.onResume();
 
-        locationService.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 5, tileManager);
+        locationService.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 5, mapBitmapManager);
         headingManager.register(this);
     }
 
@@ -53,7 +54,7 @@ public class MapActivity extends Activity implements HeadLocationListener, IMapB
     protected void onPause() {
         super.onPause();
 
-        locationService.removeUpdates(tileManager);
+        locationService.removeUpdates(mapBitmapManager);
         headingManager.unregister(this);
     }
 
@@ -96,5 +97,38 @@ public class MapActivity extends Activity implements HeadLocationListener, IMapB
         mapPos = xy;
 
         alignMap();
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        switch (keyCode)
+        {
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+                switchZoom();
+                return true;
+            case KeyEvent.KEYCODE_DPAD_UP:
+                zoomOut();
+                return true;
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                zoomIn();
+                return true;
+        }
+
+        return super.onKeyDown(keyCode, event);
+    }
+
+    private void zoomIn() {
+        mapBitmapManager.setZoom(Math.min(mapBitmapManager.getZoom() + 1, Consts.MaxZoom));
+    }
+
+    private void zoomOut() {
+        mapBitmapManager.setZoom(Math.max(mapBitmapManager.getZoom() - 1, Consts.MinZoom));
+    }
+
+    private void switchZoom() {
+        if(mapBitmapManager.getZoom() == Consts.MaxZoom)
+            mapBitmapManager.setZoom(Consts.MinZoom);
+        else
+            zoomIn();
     }
 }

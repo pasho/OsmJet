@@ -24,9 +24,20 @@ public class MapBitmapManager implements LocationListener {
 
     private int[] currentCenterTileXy = {0, 0};
     private int[] viewerPixelPosition = {0, 0};
-    private int zoom = 18;
+    private int zoom = Consts.MinZoom;
     private int currentDownloadAttempt = 0;
     private ArrayList<Bitmap> currentBitmaps = new ArrayList<Bitmap>();
+
+    public int getZoom() {
+        return zoom;
+    }
+
+    public void setZoom(int zoom) {
+        if(this.zoom == zoom) return;
+        this.zoom = zoom;
+
+        downloadTiles();
+    }
 
     private final static char[] Servers = new char[]{'a', 'b', 'c'};
 
