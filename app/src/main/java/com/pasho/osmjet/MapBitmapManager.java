@@ -33,6 +33,8 @@ public class MapBitmapManager implements LocationListener {
     private int currentDownloadAttempt = 0;
     private ArrayList<Bitmap> currentBitmaps = new ArrayList<Bitmap>();
     private Bitmap currentBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
+    private double lon;
+    private double lat;
 
     public int getZoom() {
         return zoom;
@@ -85,8 +87,8 @@ public class MapBitmapManager implements LocationListener {
 
     @Override
     public void onLocationChanged(Location location) {
-        double lon = location.getLongitude();
-        double lat = location.getLatitude();
+        lon = location.getLongitude();
+        lat = location.getLatitude();
 
         double actualX = (lon + 180) / 360 * (1 << zoom);
         double actualY = (1 - Math.log(Math.tan(Math.toRadians(lat)) + 1 / Math.cos(Math.toRadians(lat))) / Math.PI) / 2 * (1 << zoom);
@@ -94,8 +96,8 @@ public class MapBitmapManager implements LocationListener {
         int tileY = (int) Math.floor(actualY);
 
         this.viewerPixelPosition = new int[]{
-                (int) (Consts.tileSize * (1 + (actualX - tileX))),
-                (int) (Consts.tileSize * (1 + (actualY - tileY)))
+            (int) (Consts.tileSize * (1 + (actualX - tileX))),
+            (int) (Consts.tileSize * (1 + (actualY - tileY)))
         };
 
         this.consumer.onViewerPosition(this.viewerPixelPosition);
