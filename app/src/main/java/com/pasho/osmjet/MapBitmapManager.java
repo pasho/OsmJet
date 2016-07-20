@@ -57,10 +57,17 @@ public class MapBitmapManager implements LocationListener {
             int pivotX = (int)(viewerPixelPosition[0] * multiplier);
             int pivotY = (int)(viewerPixelPosition[1] * multiplier);
 
-            int left = pivotX - viewerPixelPosition[0];
-            int top = pivotY - viewerPixelPosition[1];
+            int newX = pivotX % Consts.tileSize + Consts.tileSize;
+            int newY = pivotY % Consts.tileSize + Consts.tileSize;
 
-            currentBitmap = Bitmap.createBitmap(scaledMapBitmap, top, left, Consts.getMapSize(), Consts.getMapSize());
+            viewerPixelPosition[0] = newX;
+            viewerPixelPosition[1] = newY;
+            consumer.onViewerPosition(viewerPixelPosition);
+
+            int left = pivotX - newX;
+            int top = pivotY - newY;
+
+            currentBitmap = Bitmap.createBitmap(scaledMapBitmap, left, top, Consts.getMapSize(), Consts.getMapSize());
         }
         else{
             currentBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
