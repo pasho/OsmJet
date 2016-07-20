@@ -52,7 +52,7 @@ public class MapBitmapManager implements LocationListener {
 
         Bitmap scaledMapBitmap = Bitmap.createScaledBitmap(currentBitmap, scaledMapSize, scaledMapSize, true);
 
-        if(deltaZoom > 0){
+        if(deltaZoom > 0){//in
 
             int pivotX = (int)(viewerPixelPosition[0] * multiplier);
             int pivotY = (int)(viewerPixelPosition[1] * multiplier);
@@ -69,10 +69,18 @@ public class MapBitmapManager implements LocationListener {
 
             currentBitmap = Bitmap.createBitmap(scaledMapBitmap, left, top, Consts.getMapSize(), Consts.getMapSize());
         }
-        else{
+        else{//out
+            int offset = (Consts.tileSize - scaledMapSize) / 2;
+            int newX = offset + (int)(viewerPixelPosition[0] * multiplier);
+            int newY = offset + (int)(viewerPixelPosition[1] * multiplier);
+
+            viewerPixelPosition[0] = newX;
+            viewerPixelPosition[1] = newY;
+            consumer.onViewerPosition(viewerPixelPosition);
+
             currentBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(currentBitmap);
-            canvas.drawBitmap(scaledMapBitmap, Consts.tileSize / 2, Consts.tileSize / 2, null);
+            canvas.drawBitmap(scaledMapBitmap, offset, offset, null);
         }
 
         consumer.onMapBitmap(currentBitmap);
@@ -152,6 +160,17 @@ public class MapBitmapManager implements LocationListener {
     }
 
     private HashSet<DownLoadTileTask> downloadTasks = new HashSet<DownLoadTileTask>();
+    int[][] downloadOrder = {
+            {1, 1},
+            {0, 1},
+            {1, 0},
+            {2, 1},
+            {1, 2},
+            {0, 0},
+            {2, 0},
+            {0, 2},
+            {2, 2}
+    };
 
     private void downloadTiles() {
         currentDownloadAttempt++;
@@ -161,17 +180,18 @@ public class MapBitmapManager implements LocationListener {
         }
         downloadTasks.clear();
 
-        for (int y = 0; y < 3; y++) {
-            for (int x = 0; x < 3; x++) {
-                int index = y * 3 + x;
+        for(int[] xy : downloadOrder){
+            int x = xy[0];
+            int y = xy[1];
 
-                if (currentBitmaps.get(index) != null) continue;
+            int index = y * 3 + x;
 
-                int tileX = this.currentCenterTileXy[0] + x - 1;
-                int tileY = this.currentCenterTileXy[1] + y - 1;
-                String url = getUrl(tileX, tileY);
-                downloadTasks.add((DownLoadTileTask) new DownLoadTileTask(index, url, this.currentDownloadAttempt).execute());
-            }
+            if (currentBitmaps.get(index) != null) continue;
+
+            int tileX = this.currentCenterTileXy[0] + x - 1;
+            int tileY = this.currentCenterTileXy[1] + y - 1;
+            String url = getUrl(tileX, tileY);
+            downloadTasks.add((DownLoadTileTask) new DownLoadTileTask(index, url, this.currentDownloadAttempt).execute());
         }
     }
 
