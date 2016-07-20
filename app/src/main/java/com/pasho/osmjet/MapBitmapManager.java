@@ -4,9 +4,6 @@ import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.Rect;
-import android.graphics.RectF;
 import android.location.Location;
 import android.location.LocationListener;
 import android.os.AsyncTask;
@@ -43,47 +40,47 @@ public class MapBitmapManager implements LocationListener {
     public void setZoom(int zoom) {
         if (this.zoom == zoom) return;
 
-        int deltaZoom = zoom - this.zoom;
-
+//        int deltaZoom = zoom - this.zoom;
+//
         this.zoom = zoom;
-
-        double multiplier = Math.pow(2, deltaZoom);
-        int scaledMapSize = (int)(Consts.getMapSize() * multiplier);
-
-        Bitmap scaledMapBitmap = Bitmap.createScaledBitmap(currentBitmap, scaledMapSize, scaledMapSize, true);
-
-        if(deltaZoom > 0){//in
-
-            int pivotX = (int)(viewerPixelPosition[0] * multiplier);
-            int pivotY = (int)(viewerPixelPosition[1] * multiplier);
-
-            int newX = pivotX % Consts.tileSize + Consts.tileSize;
-            int newY = pivotY % Consts.tileSize + Consts.tileSize;
-
-            viewerPixelPosition[0] = newX;
-            viewerPixelPosition[1] = newY;
-            consumer.onViewerPosition(viewerPixelPosition);
-
-            int left = pivotX - newX;
-            int top = pivotY - newY;
-
-            currentBitmap = Bitmap.createBitmap(scaledMapBitmap, left, top, Consts.getMapSize(), Consts.getMapSize());
-        }
-        else{//out
-            int offset = (Consts.tileSize - scaledMapSize) / 2;
-            int newX = offset + (int)(viewerPixelPosition[0] * multiplier);
-            int newY = offset + (int)(viewerPixelPosition[1] * multiplier);
-
-            viewerPixelPosition[0] = newX;
-            viewerPixelPosition[1] = newY;
-            consumer.onViewerPosition(viewerPixelPosition);
-
-            currentBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
-            Canvas canvas = new Canvas(currentBitmap);
-            canvas.drawBitmap(scaledMapBitmap, offset, offset, null);
-        }
-
-        consumer.onMapBitmap(currentBitmap);
+//
+//        double multiplier = Math.pow(2, deltaZoom);
+//        int scaledMapSize = (int)(Consts.getMapSize() * multiplier);
+//
+//        Bitmap scaledMapBitmap = Bitmap.createScaledBitmap(currentBitmap, scaledMapSize, scaledMapSize, true);
+//
+//        if(deltaZoom > 0){//in
+//
+//            int pivotX = (int)(viewerPixelPosition[0] * multiplier);
+//            int pivotY = (int)(viewerPixelPosition[1] * multiplier);
+//
+//            int newX = pivotX % Consts.tileSize + Consts.tileSize;
+//            int newY = pivotY % Consts.tileSize + Consts.tileSize;
+//
+//            viewerPixelPosition[0] = newX;
+//            viewerPixelPosition[1] = newY;
+//            consumer.onViewerPosition(viewerPixelPosition);
+//
+//            int left = pivotX - newX;
+//            int top = pivotY - newY;
+//
+//            currentBitmap = Bitmap.createBitmap(scaledMapBitmap, left, top, Consts.getMapSize(), Consts.getMapSize());
+//        }
+//        else{//out
+//            int offset = (Consts.tileSize - scaledMapSize) / 2;
+//            int newX = offset + (int)(viewerPixelPosition[0] * multiplier);
+//            int newY = offset + (int)(viewerPixelPosition[1] * multiplier);
+//
+//            viewerPixelPosition[0] = newX;
+//            viewerPixelPosition[1] = newY;
+//            consumer.onViewerPosition(viewerPixelPosition);
+//
+//            currentBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
+//            Canvas canvas = new Canvas(currentBitmap);
+//            canvas.drawBitmap(scaledMapBitmap, offset, offset, null);
+//        }
+//
+//        consumer.onMapBitmap(currentBitmap);
 
         downloadTiles();
     }
@@ -100,11 +97,13 @@ public class MapBitmapManager implements LocationListener {
         this.connectivityManager = connectivityManager;
     }
 
+    int serversRotor = 0;
+
     @SuppressLint("DefaultLocale")
     private String getUrl(int x, int y) {
-        double rand = Math.random();
-        char server = Servers[(int) Math.floor(rand * 3)];
-//        return String.format(Locale.US, "http://%1$c.tile2.opencyclemap.org/transport/%2$d/%3$d/%4$d.png", server, zoom, x, y);
+        char server = Servers[serversRotor];
+        serversRotor = (serversRotor + 1) % Servers.length;
+
         return String.format("http://%1$c.tile.opencyclemap.org/cycle/%2$d/%3$d/%4$d.png", server, zoom, x, y);
     }
 
@@ -247,6 +246,7 @@ public class MapBitmapManager implements LocationListener {
 
         @Override
         protected Bitmap doInBackground(Void... params) {
+            Log.d(TAG, url);
             Bitmap bitmapImg = null;
             try {
                 //Http Get Request
