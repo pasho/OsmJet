@@ -68,29 +68,34 @@ public class MapBitmapManager implements LocationListener {
         downloadTiles();
 
         int deltaZoom = zoom - oldZoom;
-
-
         double multiplier = Math.pow(2, deltaZoom);
-        int scaledMapSize = (int)(Consts.getMapSize() * multiplier);
-        int oldAreaLeft = (int)((oldTileXy[0] - 1) * Consts.tileSize * multiplier);
-        int oldAreaTop = (int)((oldTileXy[1] - 1) * Consts.tileSize * multiplier);
-
-        int newAreaLeft = (currentCenterTileXy[0] - 1) * Consts.tileSize;
-        int newAreaTop = (currentCenterTileXy[1] - 1) * Consts.tileSize;
-
-        //TODO: optimize - scale only the area, which will remain
-        Bitmap scaledMapBitmap = Bitmap.createScaledBitmap(currentBitmap, scaledMapSize, scaledMapSize, true);
-
-        int offsetX = Math.abs(newAreaLeft - oldAreaLeft);
-        int offsetY = Math.abs(newAreaTop - oldAreaTop);
 
         if(deltaZoom > 0){//in
-            currentBitmap = Bitmap.createBitmap(scaledMapBitmap, offsetX, offsetY, Consts.getMapSize(), Consts.getMapSize());
+
+            int oldAreaLeft = (oldTileXy[0] - 1) * Consts.tileSize;
+            int oldAreaTop = (oldTileXy[1] - 1) * Consts.tileSize;
+
+            int newAreaLeft = (int) (((currentCenterTileXy[0] - 1) * Consts.tileSize) / multiplier);
+            int newAreaTop = (int) (((currentCenterTileXy[1] - 1) * Consts.tileSize) / multiplier);
+
+            int newAreaSize = (int) (Consts.getMapSize() / multiplier);
+            Bitmap newArea = Bitmap.createBitmap(currentBitmap, newAreaLeft - oldAreaLeft, newAreaTop - oldAreaTop, newAreaSize, newAreaSize);
+            currentBitmap = Bitmap.createScaledBitmap(newArea, Consts.getMapSize(), Consts.getMapSize(), true);
         }
         else{//out
+            int scaledMapSize = (int)(Consts.getMapSize() * multiplier);
+
+            int newAreaLeft = (currentCenterTileXy[0] - 1) * Consts.tileSize;
+            int newAreaTop = (currentCenterTileXy[1] - 1) * Consts.tileSize;
+
+            int oldAreaLeft = (int)((oldTileXy[0] - 1) * Consts.tileSize * multiplier);
+            int oldAreaTop = (int)((oldTileXy[1] - 1) * Consts.tileSize * multiplier);
+
+            Bitmap scaledMapBitmap = Bitmap.createScaledBitmap(currentBitmap, scaledMapSize, scaledMapSize, true);
+
             currentBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(currentBitmap);
-            canvas.drawBitmap(scaledMapBitmap, offsetX, offsetY, null);
+            canvas.drawBitmap(scaledMapBitmap, oldAreaLeft - newAreaLeft, oldAreaTop - newAreaTop, null);
         }
 
         consumer.onMapBitmap(currentBitmap);
