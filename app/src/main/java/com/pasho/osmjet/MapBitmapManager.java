@@ -81,13 +81,16 @@ public class MapBitmapManager implements LocationListener {
         //TODO: optimize - scale only the area, which will remain
         Bitmap scaledMapBitmap = Bitmap.createScaledBitmap(currentBitmap, scaledMapSize, scaledMapSize, true);
 
+        int offsetX = Math.abs(newAreaLeft - oldAreaLeft);
+        int offsetY = Math.abs(newAreaTop - oldAreaTop);
+
         if(deltaZoom > 0){//in
-            currentBitmap = Bitmap.createBitmap(scaledMapBitmap, newAreaLeft - oldAreaLeft, newAreaTop - oldAreaTop, Consts.getMapSize(), Consts.getMapSize());
+            currentBitmap = Bitmap.createBitmap(scaledMapBitmap, offsetX, offsetY, Consts.getMapSize(), Consts.getMapSize());
         }
         else{//out
             currentBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(currentBitmap);
-            canvas.drawBitmap(scaledMapBitmap, oldAreaLeft - newAreaLeft, oldAreaTop - newAreaTop, null);
+            canvas.drawBitmap(scaledMapBitmap, offsetX, offsetY, null);
         }
 
         consumer.onMapBitmap(currentBitmap);
