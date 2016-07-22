@@ -8,12 +8,14 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 
 import com.reconinstruments.os.connectivity.HUDConnectivityManager;
 import com.reconinstruments.os.connectivity.http.HUDHttpRequest;
 import com.reconinstruments.os.connectivity.http.HUDHttpResponse;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 
 public class MapBitmapManager implements LocationListener {
 
@@ -24,9 +26,87 @@ public class MapBitmapManager implements LocationListener {
 
     private int[] currentCenterTileXy = {0, 0};
     private int[] viewerPixelPosition = {0, 0};
-    private int zoom = 18;
+    private int zoom = Consts.MinZoom;
     private int currentDownloadAttempt = 0;
     private ArrayList<Bitmap> currentBitmaps = new ArrayList<Bitmap>();
+    private Bitmap currentBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
+    private double lon;
+    private double lat;
+
+    public int getZoom() {
+        return zoom;
+    }
+
+    public void setZoom(int zoom) {
+        if (this.zoom == zoom) return;
+
+        int oldZoom = this.zoom;
+        int[] oldTileXy = this.currentCenterTileXy;
+
+        this.zoom = zoom;
+
+        updateTilesPosition();
+        clearTiles();
+        downloadTiles();
+        rescaleCurrentBitmap(oldZoom, oldTileXy);
+    }
+
+    private void updateTilesPosition() {
+
+        double actualX = (lon + 180) / 360 * (1 << zoom);
+        double actualY = (1 - Math.log(Math.tan(Math.toRadians(lat)) + 1 / Math.cos(Math.toRadians(lat))) / Math.PI) / 2 * (1 << zoom);
+        int tileX = (int) Math.floor(actualX);
+        int tileY = (int) Math.floor(actualY);
+
+        int viewerX = (int) (Consts.tileSize * (1 + (actualX - tileX)));
+        int viewerY = (int) (Consts.tileSize * (1 + (actualY - tileY)));
+        viewerPixelPosition = new int[] { viewerX,  viewerY };
+
+        this.consumer.onViewerPosition(this.viewerPixelPosition);
+
+        this.currentCenterTileXy = new int[]{tileX, tileY};
+    }
+
+    private void rescaleCurrentBitmap(int oldZoom, int[] oldTileXy) {
+        int deltaZoom = zoom - oldZoom;
+        double multiplier = Math.pow(2, deltaZoom);
+
+        if(deltaZoom > 0){//in
+
+            int oldAreaLeft = (oldTileXy[0] - 1) * Consts.tileSize;
+            int oldAreaTop = (oldTileXy[1] - 1) * Consts.tileSize;
+
+            int newAreaLeft = (int) (((currentCenterTileXy[0] - 1) * Consts.tileSize) / multiplier);
+            int newAreaTop = (int) (((currentCenterTileXy[1] - 1) * Consts.tileSize) / multiplier);
+
+            int newAreaSize = (int) (Consts.getMapSize() / multiplier);
+            Bitmap newArea = Bitmap.createBitmap(currentBitmap, newAreaLeft - oldAreaLeft, newAreaTop - oldAreaTop, newAreaSize, newAreaSize);
+            currentBitmap = Bitmap.createScaledBitmap(newArea, Consts.getMapSize(), Consts.getMapSize(), true);
+        }
+        else{//out
+            int scaledMapSize = (int)(Consts.getMapSize() * multiplier);
+
+            int newAreaLeft = (currentCenterTileXy[0] - 1) * Consts.tileSize;
+            int newAreaTop = (currentCenterTileXy[1] - 1) * Consts.tileSize;
+
+            int oldAreaLeft = (int)((oldTileXy[0] - 1) * Consts.tileSize * multiplier);
+            int oldAreaTop = (int)((oldTileXy[1] - 1) * Consts.tileSize * multiplier);
+
+            Bitmap scaledMapBitmap = Bitmap.createScaledBitmap(currentBitmap, scaledMapSize, scaledMapSize, true);
+
+            currentBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(currentBitmap);
+            canvas.drawBitmap(scaledMapBitmap, oldAreaLeft - newAreaLeft, oldAreaTop - newAreaTop, null);
+        }
+
+        consumer.onMapBitmap(currentBitmap);
+    }
+
+    private void clearTiles() {
+        for (int i = 0; i < currentBitmaps.size(); i++) {
+            currentBitmaps.set(i, null);
+        }
+    }
 
     private final static char[] Servers = new char[]{'a', 'b', 'c'};
 
@@ -40,37 +120,27 @@ public class MapBitmapManager implements LocationListener {
         this.connectivityManager = connectivityManager;
     }
 
+    int serversRotor = 0;
+
     @SuppressLint("DefaultLocale")
     private String getUrl(int x, int y) {
-        double rand = Math.random();
-        char server = Servers[(int) Math.floor(rand * 3)];
-//        return String.format(Locale.US, "http://%1$c.tile2.opencyclemap.org/transport/%2$d/%3$d/%4$d.png", server, zoom, x, y);
+        char server = Servers[serversRotor];
+        serversRotor = (serversRotor + 1) % Servers.length;
+
         return String.format("http://%1$c.tile.opencyclemap.org/cycle/%2$d/%3$d/%4$d.png", server, zoom, x, y);
     }
 
     @Override
     public void onLocationChanged(Location location) {
-        double lon = location.getLongitude();
-        double lat = location.getLatitude();
-
-        double actualX = (lon + 180) / 360 * (1 << zoom);
-        double actualY = (1 - Math.log(Math.tan(Math.toRadians(lat)) + 1 / Math.cos(Math.toRadians(lat))) / Math.PI) / 2 * (1 << zoom);
-        int tileX = (int) Math.floor(actualX);
-        int tileY = (int) Math.floor(actualY);
-
-        this.viewerPixelPosition = new int[]{
-                (int) (Consts.tileSize * (1 + (actualX - tileX))),
-                (int) (Consts.tileSize * (1 + (actualY - tileY)))
-        };
-
-        this.consumer.onViewerPosition(this.viewerPixelPosition);
-
-        if (tileX == this.currentCenterTileXy[0] && tileY == this.currentCenterTileXy[1])
-            return;
+        lon = location.getLongitude();
+        lat = location.getLatitude();
 
         int[] oldCenterTileXy = this.currentCenterTileXy;
 
-        this.currentCenterTileXy = new int[]{tileX, tileY};
+        updateTilesPosition();
+
+        if (oldCenterTileXy[0] == this.currentCenterTileXy[0] && oldCenterTileXy[1] == this.currentCenterTileXy[1])
+            return;
 
         tryReuseCurrentTiles(oldCenterTileXy);
         downloadTiles();
@@ -99,20 +169,39 @@ public class MapBitmapManager implements LocationListener {
         createAndPostBitmap();
     }
 
+    private HashSet<DownLoadTileTask> downloadTasks = new HashSet<DownLoadTileTask>();
+    int[][] downloadOrder = {
+            {1, 1},
+            {0, 1},
+            {1, 0},
+            {2, 1},
+            {1, 2},
+            {0, 0},
+            {2, 0},
+            {0, 2},
+            {2, 2}
+    };
+
     private void downloadTiles() {
         currentDownloadAttempt++;
 
-        for (int y = 0; y < 3; y++) {
-            for (int x = 0; x < 3; x++) {
-                int index = y * 3 + x;
+        for (DownLoadTileTask task : downloadTasks) {
+            task.cancel(true);
+        }
+        downloadTasks.clear();
 
-                if (currentBitmaps.get(index) != null) continue;
+        for(int[] xy : downloadOrder){
+            int x = xy[0];
+            int y = xy[1];
 
-                int tileX = this.currentCenterTileXy[0] + x - 1;
-                int tileY = this.currentCenterTileXy[1] + y - 1;
-                String url = getUrl(tileX, tileY);
-                new DownLoadTileTask(index, url, this.currentDownloadAttempt).execute();
-            }
+            int index = y * 3 + x;
+
+            if (currentBitmaps.get(index) != null) continue;
+
+            int tileX = this.currentCenterTileXy[0] + x - 1;
+            int tileY = this.currentCenterTileXy[1] + y - 1;
+            String url = getUrl(tileX, tileY);
+            downloadTasks.add((DownLoadTileTask) new DownLoadTileTask(index, url, this.currentDownloadAttempt).execute());
         }
     }
 
@@ -124,8 +213,8 @@ public class MapBitmapManager implements LocationListener {
     }
 
     private void createAndPostBitmap() {
-        Bitmap mapBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(mapBitmap);
+        //Bitmap mapBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(currentBitmap);
         for (int i = 0; i < 9; i++) {
             int x = i % 3;
             int y = i / 3;
@@ -136,7 +225,7 @@ public class MapBitmapManager implements LocationListener {
             }
         }
 
-        consumer.onMapBitmap(mapBitmap);
+        consumer.onMapBitmap(currentBitmap);
     }
 
     @Override
@@ -168,6 +257,7 @@ public class MapBitmapManager implements LocationListener {
 
         @Override
         protected Bitmap doInBackground(Void... params) {
+            Log.d(TAG, url);
             Bitmap bitmapImg = null;
             try {
                 //Http Get Request
@@ -185,6 +275,7 @@ public class MapBitmapManager implements LocationListener {
 
         @Override
         protected void onPostExecute(Bitmap bitmap) {
+            downloadTasks.remove(this);
             onTileDownloaded(bitmap, this.index, this.attempt);
         }
     }

@@ -5,6 +5,8 @@ package com.pasho.osmjet;
  */
 public class Consts {
     public static final int tileSize = 256;
+    public static final int MinZoom = 14;
+    public static final int MaxZoom = 18;
 
     public static int getMapSize() {
         return tileSize * 3;
