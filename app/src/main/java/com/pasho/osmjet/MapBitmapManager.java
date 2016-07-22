@@ -4,7 +4,6 @@ import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Rect;
 import android.location.Location;
 import android.location.LocationListener;
 import android.os.AsyncTask;
@@ -46,6 +45,14 @@ public class MapBitmapManager implements LocationListener {
 
         this.zoom = zoom;
 
+        updateTilesPosition();
+        clearTiles();
+        downloadTiles();
+        rescaleCurrentBitmap(oldZoom, oldTileXy);
+    }
+
+    private void updateTilesPosition() {
+
         double actualX = (lon + 180) / 360 * (1 << zoom);
         double actualY = (1 - Math.log(Math.tan(Math.toRadians(lat)) + 1 / Math.cos(Math.toRadians(lat))) / Math.PI) / 2 * (1 << zoom);
         int tileX = (int) Math.floor(actualX);
@@ -57,16 +64,10 @@ public class MapBitmapManager implements LocationListener {
 
         this.consumer.onViewerPosition(this.viewerPixelPosition);
 
-        if (tileX == this.currentCenterTileXy[0] && tileY == this.currentCenterTileXy[1])
-            return;
-
         this.currentCenterTileXy = new int[]{tileX, tileY};
+    }
 
-        for (int i = 0; i < currentBitmaps.size(); i++) {
-            currentBitmaps.set(i, null);
-        }
-        downloadTiles();
-
+    private void rescaleCurrentBitmap(int oldZoom, int[] oldTileXy) {
         int deltaZoom = zoom - oldZoom;
         double multiplier = Math.pow(2, deltaZoom);
 
@@ -101,6 +102,12 @@ public class MapBitmapManager implements LocationListener {
         consumer.onMapBitmap(currentBitmap);
     }
 
+    private void clearTiles() {
+        for (int i = 0; i < currentBitmaps.size(); i++) {
+            currentBitmaps.set(i, null);
+        }
+    }
+
     private final static char[] Servers = new char[]{'a', 'b', 'c'};
 
     public MapBitmapManager(IMapBitmapConsumer consumer, HUDConnectivityManager connectivityManager) {
@@ -128,24 +135,12 @@ public class MapBitmapManager implements LocationListener {
         lon = location.getLongitude();
         lat = location.getLatitude();
 
-        double actualX = (lon + 180) / 360 * (1 << zoom);
-        double actualY = (1 - Math.log(Math.tan(Math.toRadians(lat)) + 1 / Math.cos(Math.toRadians(lat))) / Math.PI) / 2 * (1 << zoom);
-        int tileX = (int) Math.floor(actualX);
-        int tileY = (int) Math.floor(actualY);
-
-        this.viewerPixelPosition = new int[]{
-            (int) (Consts.tileSize * (1 + (actualX - tileX))),
-            (int) (Consts.tileSize * (1 + (actualY - tileY)))
-        };
-
-        this.consumer.onViewerPosition(this.viewerPixelPosition);
-
-        if (tileX == this.currentCenterTileXy[0] && tileY == this.currentCenterTileXy[1])
-            return;
-
         int[] oldCenterTileXy = this.currentCenterTileXy;
 
-        this.currentCenterTileXy = new int[]{tileX, tileY};
+        updateTilesPosition();
+
+        if (oldCenterTileXy[0] == this.currentCenterTileXy[0] && oldCenterTileXy[1] == this.currentCenterTileXy[1])
+            return;
 
         tryReuseCurrentTiles(oldCenterTileXy);
         downloadTiles();
