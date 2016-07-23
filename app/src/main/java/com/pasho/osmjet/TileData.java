@@ -9,7 +9,7 @@ public class TileData {
     private int y;
     private String source;
 
-    public TileData(int zoom, int x, int y, String source) {
+    public TileData(String source, int zoom, int x, int y) {
         this.zoom = zoom;
         this.x = x;
         this.y = y;
