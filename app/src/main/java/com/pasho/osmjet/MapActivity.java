@@ -2,6 +2,7 @@ package com.pasho.osmjet;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.location.LocationManager;
@@ -15,6 +16,8 @@ import com.reconinstruments.os.connectivity.HUDConnectivityManager;
 import com.reconinstruments.os.hardware.sensors.HUDHeadingManager;
 import com.reconinstruments.os.hardware.sensors.HeadLocationListener;
 
+import java.io.File;
+
 public class MapActivity extends Activity implements HeadLocationListener, IMapBitmapConsumer {
     private final String TAG = this.getClass().getSimpleName();
 
@@ -26,9 +29,23 @@ public class MapActivity extends Activity implements HeadLocationListener, IMapB
     private float mapRot = 0;
     private int[] mapPos = {0, 0};
 
+    void deleteRecursive(File fileOrDirectory) {
+        if (fileOrDirectory.isDirectory())
+            for (File child : fileOrDirectory.listFiles())
+                deleteRecursive(child);
+
+        fileOrDirectory.delete();
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+//        File cache =new File(getCacheDir(), MapSources.openCycleMap);
+//        if(cache.exists()){
+//            deleteRecursive(cache);
+//            Log.d(TAG, "Deleted cache");
+//        }
 
         setContentView(R.layout.image_layout);
 
@@ -37,9 +54,19 @@ public class MapActivity extends Activity implements HeadLocationListener, IMapB
         HUDConnectivityManager connectivityManager = (HUDConnectivityManager) HUDOS.getHUDService(HUDOS.HUD_CONNECTIVITY_SERVICE);
         locationService = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         headingManager = (HUDHeadingManager) HUDOS.getHUDService(HUDOS.HUD_HEADING_SERVICE);
-        mapBitmapManager = new MapBitmapManager(this, connectivityManager);
+        mapBitmapManager = new MapBitmapManager(this, this, connectivityManager);
 
         System.load("/system/lib/libreconinstruments_jni.so");
+
+        SharedPreferences preferences = getPreferences(0);
+
+        if(preferences.getBoolean("hasPosition", false)) {
+            int zoom = preferences.getInt("zoom", 14);
+            double lat = preferences.getFloat("lat", 0);
+            double lon = preferences.getFloat("lon", 0);
+
+            mapBitmapManager.goTo(zoom, lat, lon);
+        }
     }
 
     @Override
@@ -56,6 +83,20 @@ public class MapActivity extends Activity implements HeadLocationListener, IMapB
 
         locationService.removeUpdates(mapBitmapManager);
         headingManager.unregister(this);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        SharedPreferences preferences = getPreferences(0);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putInt("zoom", mapBitmapManager.getZoom());
+        editor.putFloat("lat", (float) mapBitmapManager.getLat());
+        editor.putFloat("lon", (float) mapBitmapManager.getLon());
+        editor.putBoolean("hasPosition", true);
+
+        editor.commit();
     }
 
     @Override

@@ -11,9 +11,4 @@ public class Consts {
     public static int getMapSize() {
         return tileSize * 3;
     }
-
-    public static int[] getMapMiddle() {
-        int mid = getMapSize() / 2;
-        return new int[]{mid, mid};
-    }
 }

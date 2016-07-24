@@ -1,6 +1,6 @@
 package com.pasho.osmjet;
 
-import android.annotation.SuppressLint;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -14,6 +14,9 @@ import com.reconinstruments.os.connectivity.HUDConnectivityManager;
 import com.reconinstruments.os.connectivity.http.HUDHttpRequest;
 import com.reconinstruments.os.connectivity.http.HUDHttpResponse;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 
@@ -32,9 +35,27 @@ public class MapBitmapManager implements LocationListener {
     private Bitmap currentBitmap = Bitmap.createBitmap(Consts.getMapSize(), Consts.getMapSize(), Bitmap.Config.ARGB_8888);
     private double lon;
     private double lat;
+    private Context context;
+
+    public double getLon() {
+        return lon;
+    }
+
+    public double getLat() {
+        return lat;
+    }
 
     public int getZoom() {
         return zoom;
+    }
+
+    public void goTo(int zoom, double lat, double lon){
+        this.lat = lat;
+        this.lon = lon;
+        this.zoom = zoom;
+
+        updateTilesPosition();
+        downloadTiles();
     }
 
     public void setZoom(int zoom) {
@@ -47,8 +68,8 @@ public class MapBitmapManager implements LocationListener {
 
         updateTilesPosition();
         clearTiles();
-        downloadTiles();
         rescaleCurrentBitmap(oldZoom, oldTileXy);
+        downloadTiles();
     }
 
     private void updateTilesPosition() {
@@ -108,26 +129,15 @@ public class MapBitmapManager implements LocationListener {
         }
     }
 
-    private final static char[] Servers = new char[]{'a', 'b', 'c'};
-
-    public MapBitmapManager(IMapBitmapConsumer consumer, HUDConnectivityManager connectivityManager) {
+    public MapBitmapManager(IMapBitmapConsumer consumer, Context context, HUDConnectivityManager connectivityManager) {
 
         for (int i = 0; i < 9; i++) {
             currentBitmaps.add(null);
         }
 
         this.consumer = consumer;
+        this.context = context;
         this.connectivityManager = connectivityManager;
-    }
-
-    int serversRotor = 0;
-
-    @SuppressLint("DefaultLocale")
-    private String getUrl(int x, int y) {
-        char server = Servers[serversRotor];
-        serversRotor = (serversRotor + 1) % Servers.length;
-
-        return String.format("http://%1$c.tile.opencyclemap.org/cycle/%2$d/%3$d/%4$d.png", server, zoom, x, y);
     }
 
     @Override
@@ -200,12 +210,59 @@ public class MapBitmapManager implements LocationListener {
 
             int tileX = this.currentCenterTileXy[0] + x - 1;
             int tileY = this.currentCenterTileXy[1] + y - 1;
-            String url = getUrl(tileX, tileY);
-            downloadTasks.add((DownLoadTileTask) new DownLoadTileTask(index, url, this.currentDownloadAttempt).execute());
+
+            TileData tileData = new TileData(MapSources.openCycleMap, zoom, tileX, tileY);
+
+            if(!tryLoadFromCache(index, tileData)){
+                DownLoadTileTask task = new DownLoadTileTask(index, tileData, this.currentDownloadAttempt);
+                downloadTasks.add(task);
+                task.execute();
+            }
         }
     }
 
-    private void onTileDownloaded(Bitmap bitmap, int index, int attempt) {
+    private boolean tryLoadFromCache(int index, TileData tileData) {
+        //return false;
+        String cachedFilePath = MapSources.getCachePath(tileData);
+
+        File cachedFile = new File(context.getCacheDir(), cachedFilePath);
+
+        if(!cachedFile.exists()) return false;
+
+        Bitmap bitmap = BitmapFactory.decodeFile(cachedFile.getAbsolutePath());
+
+        currentBitmaps.set(index, bitmap);
+        createAndPostBitmap();
+
+        Log.d(TAG, "Loaded from cache: " + bitmap.getWidth() + " " + bitmap.getHeight() + " " + cachedFile.getAbsolutePath());
+
+        return true;
+    }
+
+    private void onTileDownloaded(Bitmap bitmap, int index, TileData tileData, int attempt) {
+        try {
+            String cachedFilePath = MapSources.getCachePath(tileData);
+
+            File cachedFile = new File(context.getCacheDir(), cachedFilePath);
+
+            cachedFile.getParentFile().mkdirs();
+            cachedFile.createNewFile();
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.PNG, 0 /*ignored for PNG*/, bos);
+            byte[] bitmapdata = bos.toByteArray();
+
+            FileOutputStream fos = new FileOutputStream(cachedFile);
+            fos.write(bitmapdata);
+            fos.flush();
+            fos.close();
+
+            Log.d(TAG, "Cached: " + cachedFile.getAbsolutePath());
+        }
+        catch (Exception ex){
+            Log.e(TAG, "Failed to store tile in cache: " + ex.getMessage());
+        }
+
         if (attempt != currentDownloadAttempt) return;
 
         currentBitmaps.set(index, bitmap);
@@ -246,12 +303,14 @@ public class MapBitmapManager implements LocationListener {
     private class DownLoadTileTask extends AsyncTask<Void, Void, Bitmap> {
 
         private final int index;
+        private TileData tileData;
         private String url;
         private int attempt;
 
-        public DownLoadTileTask(int index, String url, int attempt) {
+        public DownLoadTileTask(int index, TileData tileData, int attempt) {
             this.index = index;
-            this.url = url;
+            this.tileData = tileData;
+            this.url = MapSources.getUrl(tileData);
             this.attempt = attempt;
         }
 
@@ -276,7 +335,7 @@ public class MapBitmapManager implements LocationListener {
         @Override
         protected void onPostExecute(Bitmap bitmap) {
             downloadTasks.remove(this);
-            onTileDownloaded(bitmap, this.index, this.attempt);
+            onTileDownloaded(bitmap, this.index, this.tileData, this.attempt);
         }
     }
 }
