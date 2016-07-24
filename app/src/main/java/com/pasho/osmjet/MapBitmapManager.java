@@ -37,8 +37,25 @@ public class MapBitmapManager implements LocationListener {
     private double lat;
     private Context context;
 
+    public double getLon() {
+        return lon;
+    }
+
+    public double getLat() {
+        return lat;
+    }
+
     public int getZoom() {
         return zoom;
+    }
+
+    public void goTo(int zoom, double lat, double lon){
+        this.lat = lat;
+        this.lon = lon;
+        this.zoom = zoom;
+
+        updateTilesPosition();
+        downloadTiles();
     }
 
     public void setZoom(int zoom) {

@@ -2,6 +2,7 @@ package com.pasho.osmjet;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.location.LocationManager;
@@ -56,7 +57,16 @@ public class MapActivity extends Activity implements HeadLocationListener, IMapB
         mapBitmapManager = new MapBitmapManager(this, this, connectivityManager);
 
         System.load("/system/lib/libreconinstruments_jni.so");
-        File cacheDir = getCacheDir();
+
+        SharedPreferences preferences = getPreferences(0);
+
+        if(preferences.getBoolean("hasPosition", false)) {
+            int zoom = preferences.getInt("zoom", 14);
+            double lat = preferences.getFloat("lat", 0);
+            double lon = preferences.getFloat("lon", 0);
+
+            mapBitmapManager.goTo(zoom, lat, lon);
+        }
     }
 
     @Override
@@ -73,6 +83,20 @@ public class MapActivity extends Activity implements HeadLocationListener, IMapB
 
         locationService.removeUpdates(mapBitmapManager);
         headingManager.unregister(this);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        SharedPreferences preferences = getPreferences(0);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putInt("zoom", mapBitmapManager.getZoom());
+        editor.putFloat("lat", (float) mapBitmapManager.getLat());
+        editor.putFloat("lon", (float) mapBitmapManager.getLon());
+        editor.putBoolean("hasPosition", true);
+
+        editor.commit();
     }
 
     @Override
