@@ -51,8 +51,8 @@ public class MapBitmapManager implements LocationListener {
 
         updateTilesPosition();
         clearTiles();
-        downloadTiles();
         rescaleCurrentBitmap(oldZoom, oldTileXy);
+        downloadTiles();
     }
 
     private void updateTilesPosition() {

@@ -40,11 +40,11 @@ public class MapActivity extends Activity implements HeadLocationListener, IMapB
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        File cache =new File(getCacheDir(), MapSources.openCycleMap);
-        if(cache.exists()){
-            deleteRecursive(cache);
-            Log.d(TAG, "Deleted cache");
-        }
+//        File cache =new File(getCacheDir(), MapSources.openCycleMap);
+//        if(cache.exists()){
+//            deleteRecursive(cache);
+//            Log.d(TAG, "Deleted cache");
+//        }
 
         setContentView(R.layout.image_layout);
 
