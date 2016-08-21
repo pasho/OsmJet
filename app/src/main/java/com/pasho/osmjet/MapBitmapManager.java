@@ -231,6 +231,8 @@ public class MapBitmapManager implements LocationListener {
 
         Bitmap bitmap = BitmapFactory.decodeFile(cachedFile.getAbsolutePath());
 
+        if(bitmap == null) return false;
+
         currentBitmaps.set(index, bitmap);
         createAndPostBitmap();
 

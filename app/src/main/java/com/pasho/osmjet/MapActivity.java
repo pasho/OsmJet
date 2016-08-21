@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
+import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
@@ -74,6 +75,10 @@ public class MapActivity extends Activity implements HeadLocationListener, IMapB
         super.onResume();
 
         locationService.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 5, mapBitmapManager);
+//        Location loc = new Location("GPS_PROVIDER");
+//        loc.setLatitude(mapBitmapManager.getLat());
+//        loc.setLongitude(mapBitmapManager.getLon());
+//        new SouthMover(loc, this).register(mapBitmapManager);
         headingManager.register(this);
     }
 
